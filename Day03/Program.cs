@@ -62,8 +62,54 @@ public class Program
         return dominantNumber * recessiveNumber;
     }
 
+
+    enum Criteria {
+        Oxygen,
+        Co2
+    };
+
     public static int Part2(string input)
     {
-        return 0;
+        // extract all bits to a matrix
+        int[][] matrix = input.Split('\n')
+            .Where(x => x.Length > 0)
+            .Select(line => line.ToArray().Select(x => int.Parse(x.ToString())).ToArray())
+            .ToArray();
+
+        int[] RecurseCommon(int[][] data, Criteria crit, int column)
+        {
+            if (data.Length == 1) return data[0];
+
+            double colAverage = data.Select(x => x[column])
+                                    .Average();
+
+            int filterBit = (crit, colAverage) switch
+            {
+                (Criteria.Oxygen, (< 0.5))  => 0,
+                (Criteria.Oxygen, (>= 0.5)) => 1,
+                (Criteria.Co2, (< 0.5))     => 1,
+                (Criteria.Co2, (>= 0.5))    => 0,
+                _ => throw new Exception($"Bad input {crit}, {colAverage}"),
+            };
+
+            return RecurseCommon(
+                data.Where(x => x[column] == filterBit).ToArray(),
+                crit,
+                column + 1
+            );
+        }
+
+        int result = 1;
+        var criteria = new Criteria[] {Criteria.Oxygen, Criteria.Co2};
+
+        foreach (Criteria crit in criteria)
+        {
+            string binString = string.Concat(
+                RecurseCommon(matrix, crit, 0)
+                    .Select(x => x.ToString()));
+            result *= Convert.ToInt32(binString, 2);
+        }
+
+        return result;
     }
 }
