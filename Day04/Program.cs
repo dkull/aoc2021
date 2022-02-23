@@ -1,6 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 public class BingoBoard
 {
@@ -32,6 +30,21 @@ public class BingoBoard
     public void CrossOut(int number)
     {
         _marked = _marked.Append(number).ToArray();
+    }
+
+    public int? LastCrossed()
+    {
+        return _marked[^1];
+    }
+
+    public void ResetCrossed()
+    {
+        _marked = new int[0];
+    }
+
+    public int CountCrossed()
+    {
+        return _marked.Length;
     }
 
     public bool IsWinner()
@@ -82,6 +95,10 @@ class Program
         var data = LoadData(args[0]);
 
         var p1 = Part1(data.Numbers, data.Boards);
+
+        // reset the boards for part2
+        data.Boards.ToList().ForEach(x => x.ResetCrossed());
+
         var p2 = Part2(data.Numbers, data.Boards);
         Console.WriteLine($"P1: {p1} P2: {p2} in {sw.ElapsedMilliseconds} ms");
     }
@@ -103,29 +120,37 @@ class Program
         return (numbers, boards);
     }
 
+    static void PlayBoards(int[] numbers, ref BingoBoard[] boards)
+    {
+        foreach (int number in numbers)
+        {
+            foreach (BingoBoard board in boards)
+            {
+                if (!board.IsWinner()) board.CrossOut(number);
+            }
+        }
+    }
 
     static int Part1(int[] numbers, BingoBoard[] boards)
     {
-        foreach (var number in numbers)
-        {
-            Console.WriteLine($"Crossing out {number}");
-            foreach (var board in boards)
-            {
-                board.CrossOut(number);
-                if (board.IsWinner())
-                {
-                    Console.WriteLine($"Winner on number {number}!");
+        PlayBoards(numbers, ref boards);
+        BingoBoard firstWinner = boards
+            .Where(x => x.IsWinner())
+            .OrderBy(x => x.CountCrossed())
+            .First();
 
-                    int unmarkedSum = board.CountUnmarked();
-                    return number * unmarkedSum;
-                }
-            }
-        }
-        return 0;
+        return firstWinner.CountUnmarked() * firstWinner.LastCrossed()?? throw new Exception("no winner");
     }
 
     static int Part2(int[] numbers, BingoBoard[] boards)
     {
-        return 1;
+        PlayBoards(numbers, ref boards);
+        BingoBoard lastWinner = boards
+            .Where(x => x.IsWinner())
+            .OrderBy(x => x.CountCrossed())
+            .Reverse()
+            .First();
+
+        return lastWinner.CountUnmarked() * lastWinner.LastCrossed()?? throw new Exception("no winner");
     }
 }
