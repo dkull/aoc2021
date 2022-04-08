@@ -19,14 +19,6 @@ public class Line
         var fromCoords = ParseCoords(tokens[0]);
         var toCoords = ParseCoords(tokens[1]);
 
-        // make all lines left-to-right, top-to-bottom
-        if ((fromCoords.X > toCoords.X) || (fromCoords.Y > toCoords.Y))
-        {
-            (fromCoords, toCoords) = (toCoords, fromCoords);
-        }
-
-        Console.WriteLine($"NewLine: {fromCoords} -> {toCoords}");
-
         FromX = fromCoords.X;
         FromY = fromCoords.Y;
         ToX = toCoords.X;
@@ -51,37 +43,28 @@ public class Line
     {
         var mycoords = coveredCoordinates();
         var othercoords = other.coveredCoordinates();
-        /*Console.WriteLine("===========");
-        mycoords.ToList().ForEach(x => Console.WriteLine($"MY --> {x}"));
-        othercoords.ToList().ForEach(x => Console.WriteLine($"OT --> {x}"));
-        othercoords.ToList().ForEach(x => Console.WriteLine($" --> {x}"));*/
-
         return mycoords.Intersect(othercoords).ToArray();
     }
 
     private (int X, int Y)[] coveredCoordinates()
     {
         var coords = new List<(int X, int Y)>();
-        if (this.FromX < this.ToX)
-        {
-            var xAt = this.FromX;
-            while (xAt <= this.ToX)
-            {
-                coords.Add((xAt, this.ToY));
-                xAt += 1;
-            }
+
+        var xDelta = this.ToX - this.FromX;
+        var yDelta = this.ToY - this.FromY;
+        // calc unit value of delta
+        var xStep = xDelta != 0 ? xDelta / Math.Abs(xDelta) : 0;
+        var yStep = yDelta != 0 ? yDelta / Math.Abs(yDelta) : 0;
+
+        var atX = this.FromX;
+        var atY = this.FromY;
+
+        // how do we do the check?
+        while (atX != this.ToX+xStep || atY != this.ToY+yStep) {
+                coords.Add((atX, atY));
+                atX += xStep;
+                atY += yStep;
         }
-        if (this.FromY < this.ToY)
-        {
-            var yAt = this.FromY;
-            while (yAt <= this.ToY)
-            {
-                coords.Add((this.ToX, yAt));
-                yAt += 1;
-            }
-        }
-        //Console.WriteLine($"{this} contains");
-        //coords.ForEach(x => Console.WriteLine($"--> {x}"));
         return coords.ToArray();
     }
 
@@ -99,13 +82,14 @@ class Program
 
         var coords = LoadData(args[0]);
 
-        var p1 = Part1(
+        var p1 = calcOverlaps(
             coords
                 .Where(x => x.IsStraight())
                 .ToArray()
         );
 
-        var p2 = Part2(1);
+        var p2 = calcOverlaps( coords.ToArray() );
+
         Console.WriteLine($"P1: {p1} P2: {p2} in {sw.ElapsedMilliseconds} ms");
     }
 
@@ -118,7 +102,8 @@ class Program
             .ToArray();
     }
 
-    static int Part1(Line[] lines)
+
+    static int calcOverlaps(Line[] lines)
     {
         var overlaps = new HashSet<(int, int)>();
         foreach (var line_a in lines)
@@ -134,10 +119,5 @@ class Program
             }
         }
         return overlaps.Count();
-    }
-
-    static int Part2(int i)
-    {
-        return 2;
     }
 }
