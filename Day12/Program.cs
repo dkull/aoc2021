@@ -9,10 +9,10 @@ class Program
         var p1 = P1(data);
         Console.WriteLine($"P1: {p1} in {sw.ElapsedMilliseconds} ms");
 
-        /*data = LoadData(args[0]);
+        data = LoadData(args[0]);
         sw = Stopwatch.StartNew();
         var p2 = P2(data);
-        Console.WriteLine($"P2: {p2} in {sw.ElapsedMilliseconds} ms");*/
+        Console.WriteLine($"P2: {p2} in {sw.ElapsedMilliseconds} ms");
     }
 
     static (string, string)[] LoadData(string filepath)
@@ -42,7 +42,11 @@ class Program
         return result;
     }
 
-    private static int countUniquePaths(
+    /*
+        Part1
+    */
+
+    private static int countUniquePathsP1(
         Dictionary<string, string[]> map,
         string at, string endAt, HashSet<string> blacklist)
     {
@@ -60,7 +64,7 @@ class Program
             if (blacklist.Contains(connectedNode)) continue;
             Console.WriteLine($"exploring {at}->{connectedNode}");
             var subBlacklist = blacklist.ToHashSet();
-            result += countUniquePaths(map, connectedNode, endAt, subBlacklist);
+            result += countUniquePathsP1(map, connectedNode, endAt, subBlacklist);
         }
         return result;
     }
@@ -72,12 +76,49 @@ class Program
         {
             Console.WriteLine($" {k} --> {string.Join(" ", v)}");
         }
-        var paths = countUniquePaths(map, "start", "end", new HashSet<string>());
+        var paths = countUniquePathsP1(map, "start", "end", new HashSet<string>());
         return paths;
+
     }
 
-    public static int P2(int[][] data)
+    /*
+        Part2
+    */
+
+    private static int countUniquePathsP2(
+        Dictionary<string, string[]> map,
+        string at, string endAt, List<string> path)
     {
-        return 0;
+        var result = 0;
+        path.Add(at);
+
+        var inSmallCave = char.IsLower(at.First());
+        if (inSmallCave)
+        {
+            var onlySmallCaves = path.Where(x => char.IsLower(x.First())).ToList();
+            var uniqueCount = onlySmallCaves.ToHashSet().Count;
+            if (uniqueCount < onlySmallCaves.Count - 1) return 0;
+        }
+
+        foreach (var connectedNode in map[at])
+        {
+            if (connectedNode == "start") continue;
+            if (connectedNode == endAt) { result++; continue; };
+            result += countUniquePathsP2(map, connectedNode, endAt, path.ToList());
+        }
+
+        return result;
+    }
+
+    public static int P2((string, string)[] data)
+    {
+        var map = buildMap(data);
+        foreach (var (k, v) in map)
+        {
+            Console.WriteLine($" {k} --> {string.Join(" ", v)}");
+        }
+
+        var pathCount = countUniquePathsP2(map, "start", "end", new List<string>());
+        return pathCount;
     }
 }
