@@ -13,10 +13,10 @@ namespace App
             var p1 = P1(data);
             Console.WriteLine($"P1: {p1} in {sw.ElapsedMilliseconds} ms");
 
-            /*data = LoadData(args[0]);
+            data = LoadData(args[0]);
             sw = Stopwatch.StartNew();
-            var p2 = P2(data);
-            Console.WriteLine($"P2: {p2} in {sw.ElapsedMilliseconds} ms");*/
+            var p2 = P2(data[0]);
+            Console.WriteLine($"P2: {p2} in {sw.ElapsedMilliseconds} ms");
         }
 
         static int[][] LoadData(string filepath)
@@ -27,7 +27,6 @@ namespace App
             {
                 var binaryRepr = Convert.ToString(i, 2).PadLeft(4, '0');
                 var bitArray = binaryRepr.Select(x => int.Parse(x.ToString())).ToArray();
-                Console.WriteLine($"translating {symbols[i]} to {binaryRepr}");
                 translate.Add(symbols[i], bitArray);
             }
 
@@ -89,7 +88,6 @@ namespace App
             {
                 versionsSum = 0;
                 var ptr = 0;
-                Console.WriteLine($"# input {string.Join("", bits)}");
                 while (true)
                 {
                     try {
@@ -101,17 +99,14 @@ namespace App
                         if (header.type == 4)
                         {
                             var literal = readLiteral(ref ptr, bits);
-                            Console.WriteLine($"> literal(ptr:{ptr}): {literal}");
                         } else {
                             var lengthTypeId = bits[ptr++];
                             var subpacketLength = readIntFromBits(ref ptr, bits, lengthTypeId == 0 ? 15 : 11);
-                            Console.WriteLine($"> subpacket len: {subpacketLength}");
                         }
                     } catch {
                         break;
                     }
                 }
-                Console.WriteLine($"SUM: {versionsSum}");
             }
             return versionsSum;
         }
@@ -120,9 +115,63 @@ namespace App
             P2
         */
 
-        public static long P2(int[][] map)
+        public static long[] parseFrame(int[] bits, ref int ptr, int? subpackets)
         {
-            return 0;
+            var result = new List<long>();
+
+            while (true)
+            {
+                if (subpackets != null && result.Count == subpackets)
+                {
+                    break;
+                }
+
+                var _header = readHeader(ref ptr, bits);
+                if (_header == null ) break;
+                var header = _header.Value;
+
+                if (header.type == 4)
+                {
+                    result.Add( readLiteral(ref ptr, bits) );
+                    continue;
+                }
+
+                var lengthTypeId = bits[ptr++];
+                var subpacketLength = readIntFromBits(ref ptr, bits, lengthTypeId == 0 ? 15 : 11);
+
+                long[] subvalues = new long[]{-1};
+                if (lengthTypeId == 1)
+                {
+                    subvalues = parseFrame(bits, ref ptr, subpacketLength);
+                }
+                if (lengthTypeId == 0)
+                {
+                    var ptr2 = 0;
+                    subvalues = parseFrame(bits[ptr..(ptr+subpacketLength)], ref ptr2, subpacketLength);
+                    ptr += subpacketLength;
+                }
+
+                var value = header.type switch {
+                    0 => subvalues.Sum(),
+                    1 => subvalues.Aggregate((acc, x) => acc * x),
+                    2 => subvalues.Min(),
+                    3 => subvalues.Max(),
+                    5 => subvalues[0] > subvalues[1] ? 1 : 0,
+                    6 => subvalues[0] < subvalues[1] ? 1 : 0,
+                    7 => subvalues[0] == subvalues[1] ? 1 : 0,
+                    _ => throw new Exception("bad operator"),
+                };
+                result.Add(value);
+            }
+
+            return result.ToArray();
+        }
+
+        public static long P2(int[] bits)
+        {
+            var ptr = 0;
+            var result = parseFrame(bits, ref ptr, 1);
+            return result[0];
         }
     }
 }
