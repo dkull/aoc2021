@@ -6,7 +6,7 @@ class Slider
 
     public Slider(string line)
     {
-        Console.WriteLine($"Slider for {line}");
+        //Console.WriteLine($"Slider for {line}");
         var cleaned = line
             .Replace(",", " ")
             .Replace(",", " ")
@@ -73,7 +73,7 @@ class Slider
                 propagateLeft(left, i-1);
                 propagateRight(right, i+2);
                 replaceMeWithNumber(i-1, i+2, 0);
-                Console.WriteLine($"post-explode: {string.Join(' ', data)}");
+                //Console.WriteLine($"post-explode: {string.Join(' ', data)}");
                 return true;
             }
             if (data[i] == "[") depth++;
@@ -91,7 +91,7 @@ class Slider
                 var fst = (int)Math.Floor(maybeNumber.Value / 2.0);
                 var snd = (int)Math.Ceiling(maybeNumber.Value / 2.0);
                 replaceMeWithPair(i, fst, snd);
-                Console.WriteLine($"post-split: {string.Join(' ', data)}");
+                //Console.WriteLine($"post-split: {string.Join(' ', data)}");
                 return true;
             }
 
@@ -137,10 +137,10 @@ class Program
         var p1 = P1(data);
         Console.WriteLine($"P1: {p1} in {sw.ElapsedMilliseconds} ms");
 
-        /*data = LoadData(args[0]);
+        data = LoadData(args[0]);
         sw = Stopwatch.StartNew();
         var p2 = P2(data);
-        Console.WriteLine($"P2: {p2} in {sw.ElapsedMilliseconds} ms");*/
+        Console.WriteLine($"P2: {p2} in {sw.ElapsedMilliseconds} ms");
     }
 
     static string[] LoadData(string filepath)
@@ -176,10 +176,29 @@ class Program
         P2
     */
 
-    public static long P2((int x1, int x2, int y1, int y2) target)
+    public static long P2(string[] data)
     {
-        // this logic doesn't catch all possible cases
-        // we need to start to the left+above the target
-        return -1;
+        var largestMagnitude = 0;
+
+        for (var a = 0; a < data.Length; a++)
+        {
+            for (var b = 0; b < data.Length; b++)
+            {
+                if (a == b) continue;
+                var slider = new Slider(data[a]);
+                var sliderOther = new Slider(data[b]);
+                slider.add(sliderOther);
+
+                while (true)
+                {
+                    var doprocess = slider.process();
+                    if (!doprocess) break;
+                }
+                var magnitude = slider.countScore();
+                largestMagnitude = Math.Max(largestMagnitude, magnitude);
+            }
+        }
+
+        return largestMagnitude;
     }
 }
