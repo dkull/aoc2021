@@ -68,7 +68,7 @@ class Program
         }
     }
 
-    public static int? moveToRoomIfPossible(char[,] map, int row, int col, ref Dictionary<int, int> counter)
+    public static int? moveToRoomIfPossible(char[,] map, int row, int col, ref Dictionary<int, long> counter)
     {
         // target room info
         var ourName = map[row, col];
@@ -76,10 +76,10 @@ class Program
         var roomName = roomCol switch { 3 => 'A', 5 => 'B', 7 => 'C', 9 => 'D', _ => throw new Exception("bad room"), };
 
         // already in this room
-        //if (roomCol == col) { counter[1]++; return null; }
+        if (roomCol == col) { counter[1]++; return null; }
 
         // check if someone blocking my way out of my current room
-        //if (row >= 3 && Enumerable.Range(2, row - 2).AsEnumerable().Any(r => map[r, col] != '.')) {counter[5]++; return null;}
+        if (row >= 3 && Enumerable.Range(2, row - 2).AsEnumerable().Any(r => map[r, col] != '.')) {counter[5]++; return null;}
 
         // check if someone is blocking the top-room
         if (map[2, roomCol] != '.') {counter[1]++; return null;}
@@ -94,8 +94,6 @@ class Program
 
         // check if room is occupied by stranger
         var roomStrangers = Enumerable.Range(2, map.GetLength(0) - 3)
-            //.Select(r => map[r, roomCol])
-            //.Where(c => c != '.' && c != ourName)
             .Any(r => {
                 var val = map[r, roomCol];
                 return val != '.' && val != ourName;
@@ -114,10 +112,10 @@ class Program
         return cost;
     }
 
-    public static int? moveToHallwayIfPossible(char[,] map, int row, int col, int hallway, ref Dictionary<int, int> counter)
+    public static int? moveToHallwayIfPossible(char[,] map, int row, int col, int hallway, ref Dictionary<int, long> counter)
     {
         // already in hall
-        //if (row == 1) {counter[8]++; return null;}
+        if (row == 1) {counter[8]++; return null;}
 
         // infront of door
         if (hallway == 3 || hallway == 5 || hallway == 7 || hallway == 9) {counter[4]++; return null;}
@@ -129,13 +127,13 @@ class Program
         if (row >= 3 && Enumerable.Range(2, row - 2).Any(r => map[r, col] != '.')) {counter[6]++; return null;}
 
         // if i am already at home and stable
+        // don't exit room if no strangers
         var ourName = map[row, col];
         var roomStrangers = Enumerable.Range(2, map.GetLength(0) - 2)
             .Any(r => {
                 var val = map[r, col];
                 return val != '#' && val != '.' && val != ourName;
             });
-        // don't exit room if no strangers
         var roomName = col switch {
             3 => 'A', 5 => 'B', 7 => 'C', 9 => 'D', _ => throw new Exception("bad room"),
         };
@@ -165,10 +163,10 @@ class Program
                 var ourName = map[row, col];
                 if (ourName == '.' || ourName == '#' || ourName == ' ') continue;
                 var (ourCost, homeCol) = ourName switch { 'A' => (1, 3), 'B' => (10, 5), 'C' => (100, 7), 'D' => (1000, 9), _ => throw new Exception("BADNAME") };
-                //var xDelta = Math.Abs(homeCol - col);
-                //var yDelta = xDelta > 0 ? Math.Abs(1 - row) + 1 : 0;
-                //costsum += (xDelta + yDelta) * ourCost;
-                costsum += Math.Abs(homeCol - col) * ourCost;
+                var xDelta = Math.Abs(homeCol - col);
+                var yDelta = xDelta > 0 ? Math.Abs(1 - row) + 1 : 0;
+                costsum += (xDelta + yDelta) * ourCost;
+                //costsum += Math.Abs(homeCol - col) * ourCost;
                 if (costsum + 1 >= bestresult[0]) return true;
             }
         }
@@ -192,12 +190,12 @@ class Program
         }
     }
 
-    public static bool run(char[,] map, ref int[] bestresult, int result, int depth, ref Dictionary<int, int> counter)
+    public static bool run(char[,] map, ref int[] bestresult, int result, int depth, ref Dictionary<int, long> counter)
     {
         if (result >= bestresult[0]) return false;
 
         // optimization
-        if (naiveDistanceFailure(map, ref bestresult)) return false;
+        //if (naiveDistanceFailure(map, ref bestresult)) return false;
 
         if (allAreHome(map))
         {
@@ -212,31 +210,7 @@ class Program
         var rooms = new int[]{ 3, 5, 7, 9 };
         var _map = (char[,])map.Clone();
 
-
-        for (var row = 2; row < map.GetLength(0) - 1; row++)
-        {
-            for (var col = 3; col < map.GetLength(1) - 3; col+=2)
-            {
-                var val = map[row, col];
-                if (val == '.' || val == '#' || val == ' ') continue;
-                // optimization
-                if (!canMove(map, row, col)) continue;
-
-                //List<int> hallways = Enumerable.Range(1, 11).ToList();
-                //hallways.Sort((a, b) => Math.Abs(a - col).CompareTo(Math.Abs(b - col)));
-                //foreach (var hallway in hallways)
-                for (var hallway = 1; hallway <= 11; hallway++)
-                {
-                    var cost = moveToHallwayIfPossible(_map, row, col, hallway, ref counter);
-                    if (cost != null)
-                    {
-                        var finished = run(_map, ref bestresult, result + cost.Value, depth+1, ref counter);
-                        _map = (char[,])map.Clone();
-                    }
-                }
-            }
-        }
-
+        //printMap(map);
         // loop over all hallway things
         for (var col = 1; col < map.GetLength(1) - 1; col++)
         {
@@ -244,13 +218,38 @@ class Program
             var val = map[1, col];
             if (val == '.' || val == '#' || val == ' ') continue;
             // optimization
-            if (!canMove(map, row, col)) continue;
+            //if (!canMove(map, row, col)) continue;
             var cost = moveToRoomIfPossible(_map, row, col, ref counter);
             if (cost != null)
             {
                 var finished = run(_map, ref bestresult, result + cost.Value, depth+1, ref counter);
-                if (finished) return false;
+                //if (finished) return false;
                 _map = (char[,])map.Clone();
+            }
+        }
+
+        for (var col = 3; col < map.GetLength(1) - 3; col+=2)
+        {
+            for (var row = 2; row < map.GetLength(0) - 1; row++)
+            {
+                var val = map[row, col];
+                if (val == '.' || val == '#' || val == ' ') continue;
+                // optimization
+                if (!canMove(map, row, col)) continue;
+
+                List<int> hallways = Enumerable.Range(1, 11).ToList();
+                hallways.Sort((b, a) => Math.Abs(a - col).CompareTo(Math.Abs(b - col)));
+                foreach (var hallway in hallways)
+                //for (var hallway = 1; hallway <= 11; hallway++)
+                {
+                    var cost = moveToHallwayIfPossible(_map, row, col, hallway, ref counter);
+                    if (cost != null)
+                    {
+                        //Console.WriteLine($"{depth} moved {row} {col} {map[row, col]} to hw {hallway}");
+                        var finished = run(_map, ref bestresult, result + cost.Value, depth+1, ref counter);
+                        _map = (char[,])map.Clone();
+                    }
+                }
             }
         }
 
@@ -265,7 +264,7 @@ class Program
 
     public static long P1(char[,] map)
     {
-        var counter = new Dictionary<int, int>();
+        var counter = new Dictionary<int, long>();
         for (var i = 1; i <= 8; i++) { counter.Add(i, 0); }
         var result = new int[1]{int.MaxValue};
         run(map, ref result, 0, 0, ref counter);
