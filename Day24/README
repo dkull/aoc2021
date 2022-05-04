@@ -1,0 +1,58 @@
+
+
+
+
+# only Z carried over
+# X and Y are zeroed
+
+# ???1 sometimes negative
+# ???2 always positive
+
+# 11 14
+# 14 6
+# 15 6
+# 13 13
+# -12 8
+# 10 8
+# -15 7
+# 13 10
+# 10 8
+# -13 12
+# -13 10
+# -14 8
+# -2 8
+# -9 7
+
+#-1
+
+
+function (w, z) {
+		z, x = divrem(z, 26)
+		x = (x + ???) != w
+
+		y = (25 * x) + 1
+		z *= y
+
+		y = (w + ???) * x
+		z += y
+}
+
+
+w = 9
+x = 0
+x += z
+x %= 26 
+z /= 26  # VAR
+x += -9  # VAR
+x = x == w
+x = x == 0
+y = 0
+y += 25
+y *= x
+y += 1
+z *= y
+y = 0
+y += w
+y += 7  # VAR
+y *= x
+z += y
